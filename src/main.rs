@@ -1,8 +1,6 @@
 mod keyboard_mapping;
 
-use keyboard_mapping::keyboard_mapping::{
-    all_layout_vk_maps, list_layouts, vk_to_char_map_default,
-};
+use keyboard_mapping::{all_layout_vk_maps, list_layouts, vk_to_char_map_default};
 
 fn main() {
     let layouts = list_layouts();
@@ -17,7 +15,7 @@ fn main() {
     // Pretty print all mappings
     for (idx, lm) in all_maps.iter().enumerate() {
         println!(
-            "\nLayout {} (id: {:?}, dir: {:?}):",
+            "\nLayout {} (lang: {:?}, dir: {:?}):",
             idx, lm.layout.lang_name, lm.layout.direction
         );
         let mut pairs: Vec<(&u16, &String)> = lm.map.iter().collect();
