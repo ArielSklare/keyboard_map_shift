@@ -9,7 +9,7 @@ use crate::keyboard_mapping::types::{KeyboardDirection, KeyboardLayout, LayoutMa
 use std::collections::HashMap;
 use std::fs;
 
-// ===== Linux (helpers + public) =====
+const XML_PATH: &str = "/usr/share/X11/xkb/rules/evdev.xml";
 #[derive(Debug, Deserialize)]
 struct XkbConfigRegistry {
     #[serde(rename = "layoutList")]
@@ -41,7 +41,7 @@ fn is_rtl_char(c: char) -> bool {
 }
 fn get_registry_from_xml() -> Result<XkbConfigRegistry, quick_xml::DeError> {
     let xml_data =
-        fs::read_to_string("/usr/share/X11/xkb/rules/evdev.xml").unwrap_or(String::from(""));
+        fs::read_to_string(XML_PATH).unwrap_or(String::from(""));
 
     let registry: XkbConfigRegistry = from_str(&xml_data)?;
     Ok(registry)
