@@ -3,7 +3,7 @@ pub mod fallback;
 pub mod linux;
 pub mod types;
 pub mod windows;
-
+pub mod remap;
 // Re-export types for convenience
 pub use types::{LayoutMap, KeyboardLayout, KeyboardDirection};
 
@@ -22,3 +22,5 @@ pub use linux::{
 pub use fallback::{
     all_layout_vk_maps, get_layout, list_layouts, vk_to_char_map_default, vk_to_char_map_for_layout,
 };
+
+pub use remap::{get_text_leyaout_map, shift_text_language};

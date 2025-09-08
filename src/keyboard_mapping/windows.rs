@@ -4,9 +4,10 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
     ToUnicodeEx,
 };
 
-use crate::keyboard_mapping::types::{KeyboardDirection, KeyboardLayout, LayoutMap};
+use super::types::{KeyboardDirection, KeyboardLayout, LayoutMap};
 use std::collections::HashMap;
 
+// TODO: get meaningfull names for layouts
 // ===== Windows (helpers + public) =====
 #[cfg(target_os = "windows")]
 fn windows_langid_is_rtl(langid: u16) -> bool {
@@ -79,7 +80,7 @@ pub fn vk_to_char_map_for_layout(hkl: HKL) -> LayoutMap {
 pub fn vk_to_char_map_default() -> LayoutMap {
     unsafe { vk_to_char_map_for_layout(GetKeyboardLayout(0)) }
 }
-
+// TODO: decide if this should be a vec or a hash map with lang name as keys
 pub fn all_layout_vk_maps() -> Vec<LayoutMap> {
     let hkls = enumerate_hkls();
     hkls.into_iter()

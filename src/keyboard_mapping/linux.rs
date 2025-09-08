@@ -5,7 +5,8 @@ use quick_xml::de::from_str;
 use serde::Deserialize;
 use std::process::Command;
 
-use crate::keyboard_mapping::types::{KeyboardDirection, KeyboardLayout, LayoutMap};
+use super::remap::is_rtl_char;
+use super::types::{KeyboardDirection, KeyboardLayout, LayoutMap};
 use std::collections::HashMap;
 use std::fs;
 
@@ -33,15 +34,8 @@ struct ConfigItem {
     name: String,
 }
 
-fn is_rtl_char(c: char) -> bool {
-    let u = c as u32;
-    (0x0590..=0x08FF).contains(&u)
-        || (0xFB1D..=0xFDFF).contains(&u)
-        || (0xFE70..=0xFEFF).contains(&u)
-}
 fn get_registry_from_xml() -> Result<XkbConfigRegistry, quick_xml::DeError> {
-    let xml_data =
-        fs::read_to_string(XML_PATH).unwrap_or(String::from(""));
+    let xml_data = fs::read_to_string(XML_PATH).unwrap_or(String::from(""));
 
     let registry: XkbConfigRegistry = from_str(&xml_data)?;
     Ok(registry)
@@ -183,6 +177,7 @@ pub fn vk_to_char_map_default() -> LayoutMap {
     vk_to_char_map_for_layout(0)
 }
 
+// TODO: decide if this should be a vec or a hash map with lang name as keys
 pub fn all_layout_vk_maps() -> Vec<LayoutMap> {
     let total = list_layouts().len() as u32;
     (0..total).map(|i| vk_to_char_map_for_layout(i)).collect()
