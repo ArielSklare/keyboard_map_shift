@@ -1,7 +1,10 @@
 #![cfg(target_os = "windows")]
-use windows::Win32::UI::Input::KeyboardAndMouse::{
-    GetKeyboardLayout, GetKeyboardLayoutList, HKL, MAPVK_VK_TO_VSC_EX, MapVirtualKeyExW,
-    ToUnicodeEx,
+use windows::Win32::{
+    Globalization::{GetLocaleInfoEx, LCIDToLocaleName, LOCALE_SLANGUAGE},
+    UI::Input::KeyboardAndMouse::{
+        GetKeyboardLayout, GetKeyboardLayoutList, HKL, MAPVK_VK_TO_VSC_EX, MapVirtualKeyExW,
+        ToUnicodeEx,
+    },
 };
 
 use super::types::{KeyboardDirection, KeyboardLayout, LayoutMap};
@@ -27,7 +30,55 @@ fn enumerate_hkls() -> Vec<HKL> {
     }
 }
 
-fn keyboard_layout_from_hkl(hkl: HKL, idx: usize) -> KeyboardLayout {
+fn lang_name_from_langid(langid: u16) -> String {
+    unsafe {
+        let lcid = langid as u32; // SORT_DEFAULT == 0, so LCID == LANGID
+
+        // First, get BCP-47 locale name (e.g., "en-US") from LCID
+        const LOCALE_NAME_MAX_LENGTH: usize = 85; // per Win32 API docs
+        let mut locale_name_buf = [0u16; LOCALE_NAME_MAX_LENGTH];
+        let len = LCIDToLocaleName(lcid, Some(&mut locale_name_buf), 0);
+
+        if len <= 0 {
+            return format!("0x{:04X}", langid);
+        }
+
+        // len includes the terminating NUL
+        let bcp47 = String::from_utf16_lossy(&locale_name_buf[..(len as usize - 1)]);
+
+        // Try to get the localized language display name for that locale
+        // First call to get required size
+        let needed = GetLocaleInfoEx(
+            windows::core::PCWSTR(locale_name_buf.as_ptr()),
+            LOCALE_SLANGUAGE,
+            None,
+        );
+
+        if needed <= 0 {
+            return bcp47;
+        }
+
+        let mut display_buf = vec![0u16; needed as usize];
+        let written = GetLocaleInfoEx(
+            windows::core::PCWSTR(locale_name_buf.as_ptr()),
+            LOCALE_SLANGUAGE,
+            Some(display_buf.as_mut_slice()),
+        );
+
+        if written <= 0 {
+            return bcp47;
+        }
+
+        // written includes terminating NUL
+        let name = String::from_utf16_lossy(&display_buf[..(written as usize - 1)]);
+        if name.is_empty() {
+            return bcp47;
+        }
+        name
+    }
+}
+
+fn keyboard_layout_from_hkl(hkl: HKL) -> KeyboardLayout {
     let langid = (hkl.0 as usize & 0xFFFF) as u16;
     let direction = if windows_langid_is_rtl(langid) {
         KeyboardDirection::RTL
@@ -35,7 +86,7 @@ fn keyboard_layout_from_hkl(hkl: HKL, idx: usize) -> KeyboardLayout {
         KeyboardDirection::LTR
     };
     KeyboardLayout {
-        lang_name: idx.to_string(),
+        lang_name: lang_name_from_langid(langid),
         direction,
     }
 }
@@ -43,21 +94,19 @@ fn keyboard_layout_from_hkl(hkl: HKL, idx: usize) -> KeyboardLayout {
 pub fn get_layout(index: usize) -> Option<KeyboardLayout> {
     let hkls = enumerate_hkls();
     hkls.get(index)
-        .map(|&hkl| keyboard_layout_from_hkl(hkl, index))
+        .map(|&hkl| keyboard_layout_from_hkl(hkl))
 }
 
 pub fn list_layouts() -> Vec<KeyboardLayout> {
     let hkls = enumerate_hkls();
     hkls.into_iter()
-        .enumerate()
-        .map(|(i, h)| keyboard_layout_from_hkl(h, i))
+        .map(|(h)| keyboard_layout_from_hkl(h))
         .collect()
 }
 
 pub fn vk_to_char_map_for_layout(hkl: HKL) -> LayoutMap {
     let hkls = enumerate_hkls();
-    let idx = hkls.iter().position(|&x| x.0 == hkl.0).unwrap_or(0);
-    let layout = keyboard_layout_from_hkl(hkl, idx);
+    let layout = keyboard_layout_from_hkl(hkl);
     unsafe {
         let mut map: HashMap<u16, String> = HashMap::new();
         let state = [0u8; 256];
