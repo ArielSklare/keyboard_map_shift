@@ -1,8 +1,20 @@
+mod get_highlighted;
 mod keyboard_mapping;
-
-use keyboard_mapping::{all_layout_vk_maps, list_layouts, vk_to_char_map_default};
+use keyboard_mapping::{
+    all_layout_vk_maps, get_text_leyaout_map, list_layouts, shift_text_language,
+    vk_to_char_map_default,
+};
 
 fn main() {
+    // Small delay so you can focus/select in target app before we read
+    std::thread::sleep(std::time::Duration::from_millis(150));
+
+    // Test get_highlighted_text
+    match get_highlighted::get_highlighted_text() {
+        Some(s) => println!("Highlighted text: {}", s),
+        None => println!("Highlighted text: <none>"),
+    }
+
     let layouts = list_layouts();
     println!("layouts found: {}", layouts.len());
 
