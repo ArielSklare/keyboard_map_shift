@@ -11,7 +11,17 @@ fn main() {
 
     // Test get_highlighted_text
     match get_highlighted::get_highlighted_text() {
-        Some(s) => println!("Highlighted text: {}", s),
+        Some(s) => {
+            println!("Highlighted text: {}", s);
+
+            {
+                println!("Testing replace_highlighted_text...");
+                match get_highlighted::replace_highlighted_text("REPLACED TEXT") {
+                    Ok(()) => println!("Successfully replaced highlighted text!"),
+                    Err(e) => println!("Failed to replace highlighted text: {}", e),
+                }
+            }
+        }
         None => println!("Highlighted text: <none>"),
     }
 

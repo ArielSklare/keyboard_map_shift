@@ -94,3 +94,52 @@ fn is_wsl() -> bool {
             .map(|s| s.to_lowercase().contains("microsoft"))
             .unwrap_or(false)
 }
+
+pub fn replace_highlighted_text(new_text: &str) -> Result<(), String> {
+    // Avoid clipboard. Type text via input synthesis tools.
+    // Wayland: use wtype if present
+    if Command::new("wtype")
+        .args(["--"])
+        .status()
+        .map(|_| true)
+        .unwrap_or(false)
+    {
+        // wtype types args after "--" literally
+        let status = Command::new("wtype")
+            .arg("--")
+            .arg(new_text)
+            .status()
+            .map_err(|e| e.to_string())?;
+        return if status.success() {
+            Ok(())
+        } else {
+            Err("wtype failed".to_string())
+        };
+    }
+
+    // X11: xdotool type --clearmodifiers
+    if Command::new("xdotool")
+        .arg("version")
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false)
+    {
+        let status = Command::new("xdotool")
+            .args(["type", "--clearmodifiers", "--"])
+            .arg(new_text)
+            .status()
+            .map_err(|e| e.to_string())?;
+        return if status.success() {
+            Ok(())
+        } else {
+            Err("xdotool failed".to_string())
+        };
+    }
+
+    // WSL: no universal keystroke injector; return error to avoid clipboard hacks
+    if is_wsl() {
+        return Err("WSL typing not supported without GUI input tool (wtype/xdotool)".to_string());
+    }
+
+    Err("no typing tool available (wtype or xdotool)".to_string())
+}

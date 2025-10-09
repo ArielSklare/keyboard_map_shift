@@ -1,179 +1,67 @@
 #![cfg(target_os = "windows")]
 
-use std::{mem, ptr, thread, time::Duration};
+use std::mem;
 use windows::Win32::{
-    Foundation::{HANDLE, HGLOBAL},
-    System::{
-        Com::{
-            CLSCTX_INPROC_SERVER, COINIT_APARTMENTTHREADED, CoCreateInstance, CoInitializeEx,
-            CoUninitialize,
-        },
-        DataExchange::{
-            CloseClipboard, EmptyClipboard, GetClipboardData, OpenClipboard, SetClipboardData,
-        },
-        Memory::{GMEM_MOVEABLE, GlobalAlloc, GlobalLock, GlobalUnlock},
+    System::Com::{
+        CLSCTX_INPROC_SERVER, COINIT_APARTMENTTHREADED, CoCreateInstance, CoInitializeEx,
+        CoUninitialize,
     },
     UI::{
         Accessibility::{
-            CUIAutomation, IUIAutomation, IUIAutomationTextPattern, IUIAutomationValuePattern,
+            CUIAutomation, IUIAutomation, IUIAutomationElement, IUIAutomationTextPattern,
+            IUIAutomationValuePattern, TreeScope_Children, TreeScope_Descendants,
             UIA_TextPatternId, UIA_ValuePatternId,
         },
         Input::KeyboardAndMouse::{
             INPUT, INPUT_0, INPUT_KEYBOARD, KEYBD_EVENT_FLAGS, KEYBDINPUT, KEYEVENTF_KEYUP,
-            SendInput, VK_C, VK_CONTROL,
+            SendInput, VIRTUAL_KEY,
         },
     },
 };
 // Using GetCurrentPatternAs<T>(), no need to import Interface::IID
 
-// Clipboard format for UTF-16 text
-const CF_UNICODETEXT: u32 = 13;
-
-fn read_clipboard_unicode() -> Option<String> {
+fn type_unicode_text(text: &str) {
     unsafe {
-        if OpenClipboard(None).is_ok() {
-            let mut result: Option<String> = None;
-            if let Ok(h) = GetClipboardData(CF_UNICODETEXT) {
-                if !h.0.is_null() {
-                    let ptr_wide = GlobalLock(HGLOBAL(h.0)) as *const u16;
-                    if !ptr_wide.is_null() {
-                        let mut len = 0usize;
-                        while *ptr_wide.add(len) != 0 {
-                            len += 1;
-                        }
-                        let slice = std::slice::from_raw_parts(ptr_wide, len);
-                        result = Some(String::from_utf16_lossy(slice));
-                        let _ = GlobalUnlock(HGLOBAL(h.0));
-                    }
-                }
-            }
-            let _ = CloseClipboard();
-            return result;
-        }
-    }
-    None
-}
-
-fn write_clipboard_unicode(text: &str) -> bool {
-    unsafe {
-        if OpenClipboard(None).is_err() {
-            return false;
-        }
-        if EmptyClipboard().is_err() {
-            let _ = CloseClipboard();
-            return false;
-        }
-
-        let utf16: Vec<u16> = text.encode_utf16().chain(std::iter::once(0)).collect();
-        let bytes_len = utf16.len() * mem::size_of::<u16>();
-        let hmem = match GlobalAlloc(GMEM_MOVEABLE, bytes_len) {
-            Ok(h) => h,
-            Err(_) => {
-                let _ = CloseClipboard();
-                return false;
-            }
-        };
-        let dest = GlobalLock(hmem) as *mut u8;
-        if dest.is_null() {
-            let _ = CloseClipboard();
-            return false;
-        }
-        ptr::copy_nonoverlapping(utf16.as_ptr() as *const u8, dest, bytes_len);
-        let _ = GlobalUnlock(hmem);
-
-        let handle = HANDLE(hmem.0);
-        let set_ok = SetClipboardData(CF_UNICODETEXT, Some(handle)).is_ok();
-        let _ = CloseClipboard();
-        set_ok
-    }
-}
-
-fn send_ctrl_c() {
-    unsafe {
-        let inputs: [INPUT; 4] = [
-            INPUT {
+        // Each UTF-16 code unit is sent as a KEYDOWN with UNICODE flag, then KEYUP
+        let utf16: Vec<u16> = text.encode_utf16().collect();
+        // Build inputs: two per code unit (down + up)
+        let mut inputs: Vec<INPUT> = Vec::with_capacity(utf16.len() * 2);
+        for unit in utf16 {
+            // Key down
+            inputs.push(INPUT {
                 r#type: INPUT_KEYBOARD,
                 Anonymous: INPUT_0 {
                     ki: KEYBDINPUT {
-                        wVk: VK_CONTROL,
-                        wScan: 0,
-                        dwFlags: KEYBD_EVENT_FLAGS(0),
+                        wVk: VIRTUAL_KEY(0), // VK is 0 for unicode events
+                        wScan: unit,
+                        dwFlags: KEYBD_EVENT_FLAGS(0x0004), // KEYEVENTF_UNICODE
                         time: 0,
                         dwExtraInfo: 0,
                     },
                 },
-            },
-            INPUT {
+            });
+            // Key up
+            inputs.push(INPUT {
                 r#type: INPUT_KEYBOARD,
                 Anonymous: INPUT_0 {
                     ki: KEYBDINPUT {
-                        wVk: VK_C,
-                        wScan: 0,
-                        dwFlags: KEYBD_EVENT_FLAGS(0),
+                        wVk: VIRTUAL_KEY(0),
+                        wScan: unit,
+                        dwFlags: KEYBD_EVENT_FLAGS(0x0004 | 0x0002), // UNICODE | KEYUP
                         time: 0,
                         dwExtraInfo: 0,
                     },
                 },
-            },
-            INPUT {
-                r#type: INPUT_KEYBOARD,
-                Anonymous: INPUT_0 {
-                    ki: KEYBDINPUT {
-                        wVk: VK_C,
-                        wScan: 0,
-                        dwFlags: KEYEVENTF_KEYUP,
-                        time: 0,
-                        dwExtraInfo: 0,
-                    },
-                },
-            },
-            INPUT {
-                r#type: INPUT_KEYBOARD,
-                Anonymous: INPUT_0 {
-                    ki: KEYBDINPUT {
-                        wVk: VK_CONTROL,
-                        wScan: 0,
-                        dwFlags: KEYEVENTF_KEYUP,
-                        time: 0,
-                        dwExtraInfo: 0,
-                    },
-                },
-            },
-        ];
-        let _ = SendInput(&inputs, mem::size_of::<INPUT>() as i32);
+            });
+        }
+        if !inputs.is_empty() {
+            let _ = SendInput(&inputs, mem::size_of::<INPUT>() as i32);
+        }
     }
 }
 
 pub fn get_highlighted_text() -> Option<String> {
-    // First try UI Automation to read selection/text directly
-    if let Some(via_uia) = try_uia_get_selection_text() {
-        if !via_uia.is_empty() {
-            return Some(via_uia);
-        }
-    }
-
-    // Fallback: Save clipboard, Ctrl+C, read, restore
-    copy_read_restore_clipboard()
-}
-
-fn copy_read_restore_clipboard() -> Option<String> {
-    let old = read_clipboard_unicode();
-    send_ctrl_c();
-    // Small delay for target app to process
-    thread::sleep(Duration::from_millis(60));
-    let new_val = read_clipboard_unicode();
-    match &old {
-        Some(s) => {
-            let _ = write_clipboard_unicode(s);
-        }
-        None => unsafe {
-            if OpenClipboard(None).is_ok() {
-                let _ = EmptyClipboard();
-                let _ = CloseClipboard();
-            }
-        },
-    }
-    new_val
+    try_uia_get_selection_text()
 }
 
 fn try_uia_get_selection_text() -> Option<String> {
@@ -185,11 +73,32 @@ fn try_uia_get_selection_text() -> Option<String> {
 
         let automation: IUIAutomation =
             CoCreateInstance(&CUIAutomation, None, CLSCTX_INPROC_SERVER).ok()?;
-        let focused = automation.GetFocusedElement().ok()?;
 
-        // Try TextPattern first
+        // Try multiple approaches to get selected text
+
+        // 1. Try focused element first
+        if let Ok(focused) = automation.GetFocusedElement() {
+            if let Some(text) = try_get_text_from_element(&focused) {
+                return Some(text);
+            }
+        }
+
+        // 2. Try to find text elements with selections in the entire desktop
+        if let Ok(desktop) = automation.GetRootElement() {
+            if let Some(text) = find_selected_text_in_tree(&automation, &desktop) {
+                return Some(text);
+            }
+        }
+
+        None
+    }
+}
+
+fn try_get_text_from_element(element: &IUIAutomationElement) -> Option<String> {
+    unsafe {
+        // Try TextPattern first (for text selections)
         if let Ok(text_pat) =
-            focused.GetCurrentPatternAs::<IUIAutomationTextPattern>(UIA_TextPatternId)
+            element.GetCurrentPatternAs::<IUIAutomationTextPattern>(UIA_TextPatternId)
         {
             if let Ok(sel_array) = text_pat.GetSelection() {
                 let len = sel_array.Length().unwrap_or(0);
@@ -212,12 +121,41 @@ fn try_uia_get_selection_text() -> Option<String> {
 
         // Fall back to ValuePattern (single-line edits often expose this)
         if let Ok(val_pat) =
-            focused.GetCurrentPatternAs::<IUIAutomationValuePattern>(UIA_ValuePatternId)
+            element.GetCurrentPatternAs::<IUIAutomationValuePattern>(UIA_ValuePatternId)
         {
             if let Ok(s) = val_pat.CurrentValue() {
                 let v = s.to_string();
                 if !v.is_empty() {
                     return Some(v);
+                }
+            }
+        }
+
+        None
+    }
+}
+
+fn find_selected_text_in_tree(
+    automation: &IUIAutomation,
+    root: &IUIAutomationElement,
+) -> Option<String> {
+    unsafe {
+        // Recursively search through the element tree for text selections
+        if let Some(text) = try_get_text_from_element(root) {
+            return Some(text);
+        }
+
+        // Search children
+        if let Ok(children) = root.FindAll(
+            TreeScope_Children,
+            &automation.CreateTrueCondition().unwrap(),
+        ) {
+            let count = children.Length().unwrap_or(0);
+            for i in 0..count {
+                if let Ok(child) = children.GetElement(i) {
+                    if let Some(text) = find_selected_text_in_tree(automation, &child) {
+                        return Some(text);
+                    }
                 }
             }
         }
@@ -233,4 +171,10 @@ impl Drop for CoUninitGuard {
             CoUninitialize();
         }
     }
+}
+
+pub fn replace_highlighted_text(new_text: &str) -> Result<(), String> {
+    // Type Unicode characters directly so the current selection is replaced without touching the clipboard
+    type_unicode_text(new_text);
+    Ok(())
 }
