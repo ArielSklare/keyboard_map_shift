@@ -80,7 +80,8 @@ pub fn shift_text_language(
     target_layout: &LayoutMap,
 ) -> String {
     let inverse_current = invert_layout_map(curent_layout);
-    text.chars()
+    let mut result: String = text
+        .chars()
         .map(|ch| {
             inverse_current
                 .get(&ch)
@@ -90,7 +91,20 @@ pub fn shift_text_language(
                 .cloned()
                 .unwrap_or_else(|| ch.to_string())
         })
-        .collect()
+        .collect();
+
+    // Check if layouts have different directions and reverse text if needed
+    if curent_layout.layout.direction != target_layout.layout.direction {
+        result = reverse_text_direction(&result);
+    }
+
+    result
+}
+
+/// Reverse the text direction for RTL/LTR conversion
+/// This function reverses the order of characters while preserving the logical structure
+fn reverse_text_direction(text: &str) -> String {
+    text.chars().rev().collect()
 }
 
 /// Build a reverse mapping for a single layout: char -> list of virtual keys (u16)

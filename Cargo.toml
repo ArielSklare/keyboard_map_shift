@@ -7,7 +7,7 @@ edition = "2024"
 unicode-bidi = "0.3"
 
 [target.'cfg(windows)'.dependencies]
-windows = { version = "0.62.0", features = [
+windows = { version = "0.62.2", features = [
     "Win32_UI_Input_KeyboardAndMouse",
     "Win32_Globalization",
     "Win32_System_DataExchange",
@@ -20,5 +20,5 @@ windows = { version = "0.62.0", features = [
 [target.'cfg(unix)'.dependencies]
 xkbcommon = "0.9.0"
 quick-xml = {version = "0.38.3", features = ["serialize"] }
-serde = { version = "1.0", features = ["derive"] }
-serde_derive = "1.0"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_derive = "1.0.228"
