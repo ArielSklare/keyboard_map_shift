@@ -28,7 +28,7 @@ fn type_unicode_text(text: &str) {
                 r#type: INPUT_KEYBOARD,
                 Anonymous: INPUT_0 {
                     ki: KEYBDINPUT {
-                        wVk: VIRTUAL_KEY(0), 
+                        wVk: VIRTUAL_KEY(0),
                         wScan: unit,
                         dwFlags: KEYBD_EVENT_FLAGS(0x0004),
                         time: 0,
@@ -68,7 +68,6 @@ fn try_uia_get_selection_text() -> Option<String> {
 
         let automation: IUIAutomation =
             CoCreateInstance(&CUIAutomation, None, CLSCTX_INPROC_SERVER).ok()?;
-
 
         if let Ok(focused) = automation.GetFocusedElement() {
             if let Some(text) = try_get_text_from_element(&focused) {
@@ -164,4 +163,23 @@ impl Drop for CoUninitGuard {
 pub fn replace_highlighted_text(new_text: &str) -> Result<(), String> {
     type_unicode_text(new_text);
     Ok(())
+}
+
+#[cfg(all(test, target_os = "windows"))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_highlighted_text_smoke() {
+        let _result = get_highlighted_text();
+    }
+
+    #[test]
+    fn test_replace_highlighted_text_smoke() {
+        let result = replace_highlighted_text("test text");
+        match result {
+            Ok(_) => {}
+            Err(_) => {}
+        }
+    }
 }

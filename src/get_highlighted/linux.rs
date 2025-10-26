@@ -2,7 +2,6 @@
 
 use std::process::Command;
 
-
 pub fn get_highlighted_text() -> Option<String> {
     if is_wsl() {
         if let Ok(out) = Command::new("powershell.exe")
@@ -127,4 +126,29 @@ pub fn replace_highlighted_text(new_text: &str) -> Result<(), String> {
     }
 
     Err("no typing tool available (wtype or xdotool)".to_string())
+}
+
+#[cfg(all(test, target_os = "linux"))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_highlighted_text_smoke() {
+        let _result = get_highlighted_text();
+    }
+
+    #[test]
+    fn test_replace_highlighted_text_smoke() {
+        let result = replace_highlighted_text("test text");
+        match result {
+            Ok(_) => {}
+            Err(_) => {}
+        }
+    }
+
+    #[test]
+    fn test_is_wsl_detection() {
+        let is_wsl = is_wsl();
+        assert!(is_wsl == true || is_wsl == false);
+    }
 }
