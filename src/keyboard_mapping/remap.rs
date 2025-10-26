@@ -80,8 +80,7 @@ pub fn shift_text_language(
     target_layout: &LayoutMap,
 ) -> String {
     let inverse_current = invert_layout_map(curent_layout);
-    let mut result: String = text
-        .chars()
+    text.chars()
         .map(|ch| {
             inverse_current
                 .get(&ch)
@@ -91,24 +90,9 @@ pub fn shift_text_language(
                 .cloned()
                 .unwrap_or_else(|| ch.to_string())
         })
-        .collect();
-
-    // Check if layouts have different directions and reverse text if needed
-    if curent_layout.layout.direction != target_layout.layout.direction {
-        result = reverse_text_direction(&result);
-    }
-
-    result
+        .collect()
 }
 
-/// Reverse the text direction for RTL/LTR conversion
-/// This function reverses the order of characters while preserving the logical structure
-fn reverse_text_direction(text: &str) -> String {
-    text.chars().rev().collect()
-}
-
-/// Build a reverse mapping for a single layout: char -> list of virtual keys (u16)
-/// Only single-character outputs are included; multi-character outputs are skipped.
 fn invert_layout_map(layout_map: &LayoutMap) -> HashMap<char, Vec<u16>> {
     let mut inverse: HashMap<char, Vec<u16>> = HashMap::new();
     for (vk, output) in &layout_map.map {
@@ -117,7 +101,6 @@ fn invert_layout_map(layout_map: &LayoutMap) -> HashMap<char, Vec<u16>> {
             Some(c) => c,
             None => continue,
         };
-        // Include only single-character outputs to avoid ambiguous multi-char sequences
         if chars.next().is_none() {
             inverse.entry(first).or_default().push(*vk);
         }
@@ -125,7 +108,6 @@ fn invert_layout_map(layout_map: &LayoutMap) -> HashMap<char, Vec<u16>> {
     inverse
 }
 
-/// Build reverse mappings for all layouts, preserving order with the input slice.
 fn invert_layout_maps(layout_maps: &[LayoutMap]) -> Vec<HashMap<char, Vec<u16>>> {
     layout_maps.iter().map(invert_layout_map).collect()
 }

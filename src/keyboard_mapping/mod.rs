@@ -1,13 +1,11 @@
 #![allow(unused)]
 pub mod fallback;
 pub mod linux;
+pub mod remap;
 pub mod types;
 pub mod windows;
-pub mod remap;
-// Re-export types for convenience
-pub use types::{LayoutMap, KeyboardLayout, KeyboardDirection};
+pub use types::{KeyboardDirection, KeyboardLayout, LayoutMap};
 
-// Re-export platform-specific functions
 #[cfg(target_os = "windows")]
 pub use windows::{
     all_layout_vk_maps, get_layout, list_layouts, vk_to_char_map_default, vk_to_char_map_for_layout,

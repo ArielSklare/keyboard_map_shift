@@ -2,13 +2,8 @@
 
 use std::process::Command;
 
-// Tries to get the currently highlighted/selected text on X11/Wayland environments
-// Strategy:
-// - Try `wl-paste -p` (primary selection) and fallback to `wl-paste` if on Wayland
-// - If that fails, try `xclip -o -selection primary` then fallback to `xclip -o`
-// - If that fails, try `xsel -o` then fallback to `xsel -o -b`
+
 pub fn get_highlighted_text() -> Option<String> {
-    // If running in WSL, try Windows clipboard via powershell.exe
     if is_wsl() {
         if let Ok(out) = Command::new("powershell.exe")
             .args(["-NoProfile", "-Command", "Get-Clipboard"])
@@ -22,7 +17,6 @@ pub fn get_highlighted_text() -> Option<String> {
             }
         }
     }
-    // Wayland primary selection
     if let Ok(out) = Command::new("wl-paste").arg("-p").output() {
         if out.status.success() {
             let s = String::from_utf8_lossy(&out.stdout).to_string();
@@ -32,7 +26,6 @@ pub fn get_highlighted_text() -> Option<String> {
         }
     }
 
-    // Wayland clipboard
     if let Ok(out) = Command::new("wl-paste").output() {
         if out.status.success() {
             let s = String::from_utf8_lossy(&out.stdout).to_string();
@@ -42,7 +35,6 @@ pub fn get_highlighted_text() -> Option<String> {
         }
     }
 
-    // X11 primary selection via xclip
     if let Ok(out) = Command::new("xclip")
         .args(["-o", "-selection", "primary"])
         .output()
@@ -55,7 +47,6 @@ pub fn get_highlighted_text() -> Option<String> {
         }
     }
 
-    // X11 clipboard via xclip
     if let Ok(out) = Command::new("xclip").args(["-o"]).output() {
         if out.status.success() {
             let s = String::from_utf8_lossy(&out.stdout).to_string();
@@ -65,7 +56,6 @@ pub fn get_highlighted_text() -> Option<String> {
         }
     }
 
-    // X11 via xsel
     if let Ok(out) = Command::new("xsel").arg("-o").output() {
         if out.status.success() {
             let s = String::from_utf8_lossy(&out.stdout).to_string();
@@ -96,15 +86,12 @@ fn is_wsl() -> bool {
 }
 
 pub fn replace_highlighted_text(new_text: &str) -> Result<(), String> {
-    // Avoid clipboard. Type text via input synthesis tools.
-    // Wayland: use wtype if present
     if Command::new("wtype")
         .args(["--"])
         .status()
         .map(|_| true)
         .unwrap_or(false)
     {
-        // wtype types args after "--" literally
         let status = Command::new("wtype")
             .arg("--")
             .arg(new_text)
@@ -117,7 +104,6 @@ pub fn replace_highlighted_text(new_text: &str) -> Result<(), String> {
         };
     }
 
-    // X11: xdotool type --clearmodifiers
     if Command::new("xdotool")
         .arg("version")
         .status()
@@ -136,7 +122,6 @@ pub fn replace_highlighted_text(new_text: &str) -> Result<(), String> {
         };
     }
 
-    // WSL: no universal keystroke injector; return error to avoid clipboard hacks
     if is_wsl() {
         return Err("WSL typing not supported without GUI input tool (wtype/xdotool)".to_string());
     }

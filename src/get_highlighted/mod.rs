@@ -3,7 +3,6 @@ pub mod fallback;
 pub mod linux;
 pub mod windows;
 
-// Re-export platform-specific function
 #[cfg(target_os = "windows")]
 pub use windows::{get_highlighted_text, replace_highlighted_text};
 

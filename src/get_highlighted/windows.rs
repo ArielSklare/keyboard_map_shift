@@ -18,36 +18,31 @@ use windows::Win32::{
         },
     },
 };
-// Using GetCurrentPatternAs<T>(), no need to import Interface::IID
 
 fn type_unicode_text(text: &str) {
     unsafe {
-        // Each UTF-16 code unit is sent as a KEYDOWN with UNICODE flag, then KEYUP
         let utf16: Vec<u16> = text.encode_utf16().collect();
-        // Build inputs: two per code unit (down + up)
         let mut inputs: Vec<INPUT> = Vec::with_capacity(utf16.len() * 2);
         for unit in utf16 {
-            // Key down
             inputs.push(INPUT {
                 r#type: INPUT_KEYBOARD,
                 Anonymous: INPUT_0 {
                     ki: KEYBDINPUT {
-                        wVk: VIRTUAL_KEY(0), // VK is 0 for unicode events
+                        wVk: VIRTUAL_KEY(0), 
                         wScan: unit,
-                        dwFlags: KEYBD_EVENT_FLAGS(0x0004), // KEYEVENTF_UNICODE
+                        dwFlags: KEYBD_EVENT_FLAGS(0x0004),
                         time: 0,
                         dwExtraInfo: 0,
                     },
                 },
             });
-            // Key up
             inputs.push(INPUT {
                 r#type: INPUT_KEYBOARD,
                 Anonymous: INPUT_0 {
                     ki: KEYBDINPUT {
                         wVk: VIRTUAL_KEY(0),
                         wScan: unit,
-                        dwFlags: KEYBD_EVENT_FLAGS(0x0004 | 0x0002), // UNICODE | KEYUP
+                        dwFlags: KEYBD_EVENT_FLAGS(0x0004 | 0x0002),
                         time: 0,
                         dwExtraInfo: 0,
                     },
@@ -74,16 +69,13 @@ fn try_uia_get_selection_text() -> Option<String> {
         let automation: IUIAutomation =
             CoCreateInstance(&CUIAutomation, None, CLSCTX_INPROC_SERVER).ok()?;
 
-        // Try multiple approaches to get selected text
 
-        // 1. Try focused element first
         if let Ok(focused) = automation.GetFocusedElement() {
             if let Some(text) = try_get_text_from_element(&focused) {
                 return Some(text);
             }
         }
 
-        // 2. Try to find text elements with selections in the entire desktop
         if let Ok(desktop) = automation.GetRootElement() {
             if let Some(text) = find_selected_text_in_tree(&automation, &desktop) {
                 return Some(text);
@@ -96,7 +88,6 @@ fn try_uia_get_selection_text() -> Option<String> {
 
 fn try_get_text_from_element(element: &IUIAutomationElement) -> Option<String> {
     unsafe {
-        // Try TextPattern first (for text selections)
         if let Ok(text_pat) =
             element.GetCurrentPatternAs::<IUIAutomationTextPattern>(UIA_TextPatternId)
         {
@@ -119,7 +110,6 @@ fn try_get_text_from_element(element: &IUIAutomationElement) -> Option<String> {
             }
         }
 
-        // Fall back to ValuePattern (single-line edits often expose this)
         if let Ok(val_pat) =
             element.GetCurrentPatternAs::<IUIAutomationValuePattern>(UIA_ValuePatternId)
         {
@@ -140,12 +130,10 @@ fn find_selected_text_in_tree(
     root: &IUIAutomationElement,
 ) -> Option<String> {
     unsafe {
-        // Recursively search through the element tree for text selections
         if let Some(text) = try_get_text_from_element(root) {
             return Some(text);
         }
 
-        // Search children
         if let Ok(children) = root.FindAll(
             TreeScope_Children,
             &automation.CreateTrueCondition().unwrap(),
@@ -174,7 +162,6 @@ impl Drop for CoUninitGuard {
 }
 
 pub fn replace_highlighted_text(new_text: &str) -> Result<(), String> {
-    // Type Unicode characters directly so the current selection is replaced without touching the clipboard
     type_unicode_text(new_text);
     Ok(())
 }

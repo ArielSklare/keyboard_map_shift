@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-// ===== Types (shared) =====
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KeyboardLayout {
     pub lang_name: String,
