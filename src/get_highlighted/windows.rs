@@ -166,20 +166,4 @@ pub fn replace_highlighted_text(new_text: &str) -> Result<(), String> {
 }
 
 #[cfg(all(test, target_os = "windows"))]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_get_highlighted_text_smoke() {
-        let _result = get_highlighted_text();
-    }
-
-    #[test]
-    fn test_replace_highlighted_text_smoke() {
-        let result = replace_highlighted_text("test text");
-        match result {
-            Ok(_) => {}
-            Err(_) => {}
-        }
-    }
-}
+mod tests;
