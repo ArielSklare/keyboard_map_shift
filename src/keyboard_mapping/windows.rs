@@ -10,8 +10,6 @@ use windows::Win32::{
 use super::types::{KeyboardDirection, KeyboardLayout, LayoutMap};
 use std::collections::HashMap;
 
-// TODO: get meaningfull names for layouts
-// ===== Windows (helpers + public) =====
 #[cfg(target_os = "windows")]
 fn windows_langid_is_rtl(langid: u16) -> bool {
     let primary = langid & 0x03FF;
@@ -32,10 +30,8 @@ fn enumerate_hkls() -> Vec<HKL> {
 
 fn lang_name_from_langid(langid: u16) -> String {
     unsafe {
-        let lcid = langid as u32; // SORT_DEFAULT == 0, so LCID == LANGID
-
-        // First, get BCP-47 locale name (e.g., "en-US") from LCID
-        const LOCALE_NAME_MAX_LENGTH: usize = 85; // per Win32 API docs
+        let lcid = langid as u32;
+        const LOCALE_NAME_MAX_LENGTH: usize = 85;
         let mut locale_name_buf = [0u16; LOCALE_NAME_MAX_LENGTH];
         let len = LCIDToLocaleName(lcid, Some(&mut locale_name_buf), 0);
 
@@ -43,11 +39,8 @@ fn lang_name_from_langid(langid: u16) -> String {
             return format!("0x{:04X}", langid);
         }
 
-        // len includes the terminating NUL
         let bcp47 = String::from_utf16_lossy(&locale_name_buf[..(len as usize - 1)]);
 
-        // Try to get the localized language display name for that locale
-        // First call to get required size
         let needed = GetLocaleInfoEx(
             windows::core::PCWSTR(locale_name_buf.as_ptr()),
             LOCALE_SLANGUAGE,
@@ -69,7 +62,6 @@ fn lang_name_from_langid(langid: u16) -> String {
             return bcp47;
         }
 
-        // written includes terminating NUL
         let name = String::from_utf16_lossy(&display_buf[..(written as usize - 1)]);
         if name.is_empty() {
             return bcp47;
@@ -128,7 +120,7 @@ pub fn vk_to_char_map_for_layout(hkl: HKL) -> LayoutMap {
 pub fn vk_to_char_map_default() -> LayoutMap {
     unsafe { vk_to_char_map_for_layout(GetKeyboardLayout(0)) }
 }
-// TODO: decide if this should be a vec or a hash map with lang name as keys
+
 pub fn all_layout_vk_maps() -> Vec<LayoutMap> {
     let hkls = enumerate_hkls();
     hkls.into_iter()

@@ -57,10 +57,9 @@ fn get_locale_layout_and_variant_strs(registry: XkbConfigRegistry) -> String {
             if loc.starts_with("C") || loc.starts_with("POSIX") {
                 None
             } else {
-                // Split at _ and take the country (if present)
                 let parts: Vec<&str> = loc.split(&['_', '.'][..]).collect();
                 if parts.len() >= 2 {
-                    Some(parts[1].to_lowercase()) // "US" -> "us"
+                    Some(parts[1].to_lowercase())
                 } else {
                     None
                 }
@@ -177,7 +176,6 @@ pub fn vk_to_char_map_default() -> LayoutMap {
     vk_to_char_map_for_layout(0)
 }
 
-// TODO: decide if this should be a vec or a hash map with lang name as keys
 pub fn all_layout_vk_maps() -> Vec<LayoutMap> {
     let total = list_layouts().len() as u32;
     (0..total).map(|i| vk_to_char_map_for_layout(i)).collect()
