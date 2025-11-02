@@ -67,3 +67,6 @@ fn gsettings_set_kb(schema: &str, base_path: &str, key: &str, value: &str) -> Re
     }
     Ok(())
 }
+
+#[cfg(all(test, target_os = "linux"))]
+mod tests;

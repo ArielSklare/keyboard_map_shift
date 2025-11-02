@@ -99,3 +99,6 @@ pub fn to_windows_hotkey_word_from_display(display: &str) -> Result<u16, String>
     let hk = parse_display(display)?;
     Ok(to_windows_hotkey_word(&hk))
 }
+
+#[cfg(test)]
+mod tests;

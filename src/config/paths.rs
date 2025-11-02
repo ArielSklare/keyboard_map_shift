@@ -11,3 +11,6 @@ pub fn config_file_path() -> Result<PathBuf, String> {
     path.push("config.toml");
     Ok(path)
 }
+
+#[cfg(test)]
+mod tests;

@@ -107,3 +107,6 @@ fn save_ini(path: &PathBuf, ini: &Ini) -> Result<(), String> {
     }
     fs::write(path, out).map_err(|e| format!("Write kglobalshortcutsrc failed: {}", e))
 }
+
+#[cfg(all(test, target_os = "linux"))]
+mod tests;

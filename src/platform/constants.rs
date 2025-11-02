@@ -79,3 +79,6 @@ pub const WINDOWS_PATHS: WindowsPaths = WindowsPaths {
     start_menu_programs_rel: "Microsoft\\Windows\\Start Menu\\Programs",
     shortcut_filename: "Keyboard Map Shift.lnk",
 };
+
+#[cfg(test)]
+mod tests;

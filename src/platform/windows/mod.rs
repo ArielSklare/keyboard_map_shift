@@ -95,3 +95,6 @@ fn to_wide_null(path: impl AsRef<OsStr>) -> Vec<u16> {
     let s = path.as_ref();
     s.encode_wide().chain(std::iter::once(0)).collect()
 }
+
+#[cfg(all(test, target_os = "windows"))]
+mod tests;

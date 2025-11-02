@@ -4,6 +4,9 @@ pub mod hotkey;
 pub mod keyboard_mapping;
 pub mod platform;
 
+#[cfg(test)]
+pub mod test_utils;
+
 pub use get_highlighted::{get_highlighted_text, replace_highlighted_text};
 pub use keyboard_mapping::{
     all_layout_vk_maps, get_layout, get_text_leyaout_map, list_layouts, shift_text_language,

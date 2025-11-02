@@ -54,3 +54,6 @@ fn detect_de() -> DesktopEnvironment {
     }
     DesktopEnvironment::Unknown
 }
+
+#[cfg(all(test, target_os = "linux"))]
+mod tests;

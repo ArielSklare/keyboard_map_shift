@@ -51,3 +51,6 @@ pub fn execute(cli: Cli) -> Result<(), String> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests;
