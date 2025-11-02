@@ -1,8 +1,9 @@
-use keyboard_map_shift::shift_highlighted_text_to_next_layout;
+mod cli;
+use clap::Parser;
 
 fn main() {
-    match shift_highlighted_text_to_next_layout() {
-        Ok(()) => println!("Successfully shifted highlighted text to next layout"),
-        Err(e) => eprintln!("Error: {}", e),
+    let cli = cli::Cli::parse();
+    if let Err(e) = cli::execute(cli) {
+        eprintln!("Error: {}", e);
     }
 }
