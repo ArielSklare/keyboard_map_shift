@@ -2,14 +2,13 @@ use std::ffi::OsStr;
 use std::os::windows::ffi::OsStrExt;
 use std::path::PathBuf;
 
-use windows::Win32::Foundation::{HWND, MAX_PATH};
 use windows::Win32::System::Com::{
     CLSCTX_INPROC_SERVER, COINIT_APARTMENTTHREADED, CoCreateInstance, CoInitializeEx,
     CoUninitialize,
 };
-use windows::Win32::System::Ole::IPersistFile;
-use windows::Win32::UI::Shell::{IShellLinkW, ShellExecuteW, ShellLink};
-use windows::core::Interface;
+use windows::Win32::System::Com::IPersistFile;
+use windows::Win32::UI::Shell::{IShellLinkW, ShellLink};
+use windows::core::{Interface, PCWSTR};
 
 use crate::hotkey;
 use crate::platform::HotkeyBinder;
@@ -27,6 +26,7 @@ impl HotkeyBinder for WindowsBinder {
     fn apply_hotkey(&self, display: &str) -> Result<(), String> {
         unsafe {
             CoInitializeEx(None, COINIT_APARTMENTTHREADED)
+                .ok()
                 .map_err(|e| format!("COM init failed: {}", e))?;
         }
         let res = (|| {
@@ -49,7 +49,7 @@ impl HotkeyBinder for WindowsBinder {
                 .cast()
                 .map_err(|e| format!("Persist cast: {}", e))?;
             let wide = to_wide_null(shortcut_path);
-            unsafe { persist.Save(wide.as_ptr(), true) }
+            unsafe { persist.Save(PCWSTR(wide.as_ptr()), true) }
                 .map_err(|e| format!("Save .lnk failed: {}", e))?;
 
             Ok(())
@@ -80,7 +80,7 @@ fn shortcut_path() -> Result<PathBuf, String> {
 
 fn set_link_path(link: &IShellLinkW, exe: &PathBuf) -> Result<(), String> {
     let wide = to_wide_null(exe);
-    unsafe { link.SetPath(wide.as_ptr()) }.map_err(|e| format!("SetPath failed: {}", e))
+    unsafe { link.SetPath(PCWSTR(wide.as_ptr())) }.map_err(|e| format!("SetPath failed: {}", e))
 }
 
 fn set_link_arguments(link: &IShellLinkW, args: &str) -> Result<(), String> {
@@ -88,7 +88,8 @@ fn set_link_arguments(link: &IShellLinkW, args: &str) -> Result<(), String> {
         .encode_wide()
         .chain(std::iter::once(0))
         .collect();
-    unsafe { link.SetArguments(wide.as_ptr()) }.map_err(|e| format!("SetArguments failed: {}", e))
+    unsafe { link.SetArguments(PCWSTR(wide.as_ptr())) }
+        .map_err(|e| format!("SetArguments failed: {}", e))
 }
 
 fn to_wide_null(path: impl AsRef<OsStr>) -> Vec<u16> {

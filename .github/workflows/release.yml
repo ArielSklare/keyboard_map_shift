@@ -63,7 +63,7 @@ jobs:
           Copy-Item target\release\keyboard_map_shift.exe dist\$out\
           if (Test-Path LICENSE) { Copy-Item LICENSE dist\$out\ }
           Compress-Archive -Path dist\$out\* -DestinationPath dist\$out.zip
-          CertUtil -hashfile dist\$out.zip SHA256 | Select-String "^[0-9A-F]{64}$" | %% { $_.Line } | Out-File -Encoding ascii dist\$out.zip.sha256
+          CertUtil -hashfile dist\$out.zip SHA256 | Select-String "^[0-9A-F]{64}$" | % { $_.Line } | Out-File -Encoding ascii dist\$out.zip.sha256
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
