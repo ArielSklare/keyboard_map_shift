@@ -20,7 +20,9 @@ struct AppDataGuard {
 }
 impl AppDataGuard {
     fn set(path: &std::path::Path) -> Self {
-        AppDataGuard { _guard: EnvVarGuard::set_path(WINDOWS_PATHS.env_appdata, path) }
+        AppDataGuard {
+            _guard: EnvVarGuard::set_path(WINDOWS_PATHS.env_appdata, path),
+        }
     }
 }
 
