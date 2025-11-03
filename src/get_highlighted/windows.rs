@@ -110,12 +110,11 @@ fn try_get_text_from_element(element: &IUIAutomationElement) -> Option<String> {
 
         if let Ok(val_pat) =
             element.GetCurrentPatternAs::<IUIAutomationValuePattern>(UIA_ValuePatternId)
+            && let Ok(s) = val_pat.CurrentValue()
         {
-            if let Ok(s) = val_pat.CurrentValue() {
-                let v = s.to_string();
-                if !v.is_empty() {
-                    return Some(v);
-                }
+            let v = s.to_string();
+            if !v.is_empty() {
+                return Some(v);
             }
         }
 
@@ -138,10 +137,10 @@ fn find_selected_text_in_tree(
         ) {
             let count = children.Length().unwrap_or(0);
             for i in 0..count {
-                if let Ok(child) = children.GetElement(i) {
-                    if let Some(text) = find_selected_text_in_tree(automation, &child) {
-                        return Some(text);
-                    }
+                if let Ok(child) = children.GetElement(i)
+                    && let Some(text) = find_selected_text_in_tree(automation, &child)
+                {
+                    return Some(text);
                 }
             }
         }
