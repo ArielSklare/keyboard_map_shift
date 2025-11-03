@@ -3,73 +3,70 @@
 use std::process::Command;
 
 pub fn get_highlighted_text() -> Option<String> {
-    if is_wsl() {
-        if let Ok(out) = Command::new("powershell.exe")
+    if is_wsl()
+        && let Ok(out) = Command::new("powershell.exe")
             .args(["-NoProfile", "-Command", "Get-Clipboard"])
             .output()
-        {
-            if out.status.success() {
-                let s = String::from_utf8_lossy(&out.stdout).to_string();
-                if !s.is_empty() {
-                    return Some(s.replace("\r\n", "\n"));
-                }
-            }
+        && out.status.success()
+    {
+        let s = String::from_utf8_lossy(&out.stdout).to_string();
+        if !s.is_empty() {
+            return Some(s.replace("\r\n", "\n"));
         }
     }
-    if let Ok(out) = Command::new("wl-paste").arg("-p").output() {
-        if out.status.success() {
-            let s = String::from_utf8_lossy(&out.stdout).to_string();
-            if !s.is_empty() {
-                return Some(s);
-            }
+    if let Ok(out) = Command::new("wl-paste").arg("-p").output()
+        && out.status.success()
+    {
+        let s = String::from_utf8_lossy(&out.stdout).to_string();
+        if !s.is_empty() {
+            return Some(s);
         }
     }
 
-    if let Ok(out) = Command::new("wl-paste").output() {
-        if out.status.success() {
-            let s = String::from_utf8_lossy(&out.stdout).to_string();
-            if !s.is_empty() {
-                return Some(s);
-            }
+    if let Ok(out) = Command::new("wl-paste").output()
+        && out.status.success()
+    {
+        let s = String::from_utf8_lossy(&out.stdout).to_string();
+        if !s.is_empty() {
+            return Some(s);
         }
     }
 
     if let Ok(out) = Command::new("xclip")
         .args(["-o", "-selection", "primary"])
         .output()
+        && out.status.success()
     {
-        if out.status.success() {
-            let s = String::from_utf8_lossy(&out.stdout).to_string();
-            if !s.is_empty() {
-                return Some(s);
-            }
+        let s = String::from_utf8_lossy(&out.stdout).to_string();
+        if !s.is_empty() {
+            return Some(s);
         }
     }
 
-    if let Ok(out) = Command::new("xclip").args(["-o"]).output() {
-        if out.status.success() {
-            let s = String::from_utf8_lossy(&out.stdout).to_string();
-            if !s.is_empty() {
-                return Some(s);
-            }
+    if let Ok(out) = Command::new("xclip").args(["-o"]).output()
+        && out.status.success()
+    {
+        let s = String::from_utf8_lossy(&out.stdout).to_string();
+        if !s.is_empty() {
+            return Some(s);
         }
     }
 
-    if let Ok(out) = Command::new("xsel").arg("-o").output() {
-        if out.status.success() {
-            let s = String::from_utf8_lossy(&out.stdout).to_string();
-            if !s.is_empty() {
-                return Some(s);
-            }
+    if let Ok(out) = Command::new("xsel").arg("-o").output()
+        && out.status.success()
+    {
+        let s = String::from_utf8_lossy(&out.stdout).to_string();
+        if !s.is_empty() {
+            return Some(s);
         }
     }
 
-    if let Ok(out) = Command::new("xsel").args(["-o", "-b"]).output() {
-        if out.status.success() {
-            let s = String::from_utf8_lossy(&out.stdout).to_string();
-            if !s.is_empty() {
-                return Some(s);
-            }
+    if let Ok(out) = Command::new("xsel").args(["-o", "-b"]).output()
+        && out.status.success()
+    {
+        let s = String::from_utf8_lossy(&out.stdout).to_string();
+        if !s.is_empty() {
+            return Some(s);
         }
     }
 

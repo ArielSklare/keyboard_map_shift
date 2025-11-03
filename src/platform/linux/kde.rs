@@ -1,6 +1,6 @@
 use crate::platform::constants::{APP_STRINGS, KDE_KEYS, KDE_PATHS, KDE_TEMPLATES};
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 pub fn apply_kde_binding(display: &str) -> Result<(), String> {
     let home = std::env::var("HOME").map_err(|e| format!("HOME not set: {}", e))?;
@@ -41,8 +41,8 @@ pub fn apply_kde_binding(display: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn desktop_file_path_from_home(home: &PathBuf) -> Result<PathBuf, String> {
-    let mut p = home.clone();
+fn desktop_file_path_from_home(home: &Path) -> Result<PathBuf, String> {
+    let mut p = home.to_path_buf();
     p.push(KDE_PATHS.desktop_relative_path);
     Ok(p)
 }
@@ -54,15 +54,15 @@ fn desktop_file_contents() -> String {
         .replace("{exec}", APP_STRINGS.exec_run_cmd)
 }
 
-fn kglobalshortcuts_path_from_home(home: &PathBuf) -> Result<PathBuf, String> {
-    let mut p = home.clone();
+fn kglobalshortcuts_path_from_home(home: &Path) -> Result<PathBuf, String> {
+    let mut p = home.to_path_buf();
     p.push(KDE_PATHS.kglobalshortcuts_relative_path);
     Ok(p)
 }
 
 type Ini = std::collections::BTreeMap<String, std::collections::BTreeMap<String, String>>;
 
-fn load_ini(path: &PathBuf) -> Ini {
+fn load_ini(path: &Path) -> Ini {
     let mut ini: Ini = Ini::new();
     if let Ok(contents) = fs::read_to_string(path) {
         let mut current_group: Option<String> = None;
@@ -73,13 +73,13 @@ fn load_ini(path: &PathBuf) -> Ini {
             }
             if line.starts_with('[') && line.ends_with(']') {
                 current_group = Some(line.trim_matches(&['[', ']'][..]).to_string());
-            } else if let Some(eq) = line.find('=') {
-                if let Some(group) = &current_group {
-                    let (k, v) = line.split_at(eq);
-                    let k = k.trim().to_string();
-                    let v = v[1..].trim().to_string();
-                    ini.entry(group.clone()).or_default().insert(k, v);
-                }
+            } else if let Some(eq) = line.find('=')
+                && let Some(group) = &current_group
+            {
+                let (k, v) = line.split_at(eq);
+                let k = k.trim().to_string();
+                let v = v[1..].trim().to_string();
+                ini.entry(group.clone()).or_default().insert(k, v);
             }
         }
     }
@@ -92,7 +92,7 @@ fn ini_set(ini: &mut Ini, group: &str, key: &str, value: &str) {
         .insert(key.to_string(), value.to_string());
 }
 
-fn save_ini(path: &PathBuf, ini: &Ini) -> Result<(), String> {
+fn save_ini(path: &Path, ini: &Ini) -> Result<(), String> {
     let mut out = String::new();
     for (group, entries) in ini {
         out.push('[');
