@@ -69,16 +69,16 @@ fn try_uia_get_selection_text() -> Option<String> {
         let automation: IUIAutomation =
             CoCreateInstance(&CUIAutomation, None, CLSCTX_INPROC_SERVER).ok()?;
 
-        if let Ok(focused) = automation.GetFocusedElement() {
-            if let Some(text) = try_get_text_from_element(&focused) {
-                return Some(text);
-            }
+        if let Ok(focused) = automation.GetFocusedElement()
+            && let Some(text) = try_get_text_from_element(&focused)
+        {
+            return Some(text);
         }
 
-        if let Ok(desktop) = automation.GetRootElement() {
-            if let Some(text) = find_selected_text_in_tree(&automation, &desktop) {
-                return Some(text);
-            }
+        if let Ok(desktop) = automation.GetRootElement()
+            && let Some(text) = find_selected_text_in_tree(&automation, &desktop)
+        {
+            return Some(text);
         }
 
         None
