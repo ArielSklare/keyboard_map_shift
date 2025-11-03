@@ -8,8 +8,5 @@ fn test_get_highlighted_text_smoke() {
 #[test]
 fn test_replace_highlighted_text_smoke() {
     let result = replace_highlighted_text("test text");
-    match result {
-        Ok(_) => {}
-        Err(_) => {}
-    }
+    let _ = result;
 }

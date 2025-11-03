@@ -89,23 +89,22 @@ fn try_get_text_from_element(element: &IUIAutomationElement) -> Option<String> {
     unsafe {
         if let Ok(text_pat) =
             element.GetCurrentPatternAs::<IUIAutomationTextPattern>(UIA_TextPatternId)
+            && let Ok(sel_array) = text_pat.GetSelection()
         {
-            if let Ok(sel_array) = text_pat.GetSelection() {
-                let len = sel_array.Length().unwrap_or(0);
-                let mut collected = String::new();
-                for i in 0..len {
-                    if let Ok(range) = sel_array.GetElement(i) {
-                        if let Ok(s) = range.GetText(i32::MAX) {
-                            let chunk = s.to_string();
-                            if !chunk.is_empty() {
-                                collected.push_str(&chunk);
-                            }
-                        }
+            let len = sel_array.Length().unwrap_or(0);
+            let mut collected = String::new();
+            for i in 0..len {
+                if let Ok(range) = sel_array.GetElement(i)
+                    && let Ok(s) = range.GetText(i32::MAX)
+                {
+                    let chunk = s.to_string();
+                    if !chunk.is_empty() {
+                        collected.push_str(&chunk);
                     }
                 }
-                if !collected.is_empty() {
-                    return Some(collected);
-                }
+            }
+            if !collected.is_empty() {
+                return Some(collected);
             }
         }
 
