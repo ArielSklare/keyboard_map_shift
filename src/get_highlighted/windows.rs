@@ -69,16 +69,16 @@ fn try_uia_get_selection_text() -> Option<String> {
         let automation: IUIAutomation =
             CoCreateInstance(&CUIAutomation, None, CLSCTX_INPROC_SERVER).ok()?;
 
-        if let Ok(focused) = automation.GetFocusedElement() {
-            if let Some(text) = try_get_text_from_element(&focused) {
-                return Some(text);
-            }
+        if let Ok(focused) = automation.GetFocusedElement()
+            && let Some(text) = try_get_text_from_element(&focused)
+        {
+            return Some(text);
         }
 
-        if let Ok(desktop) = automation.GetRootElement() {
-            if let Some(text) = find_selected_text_in_tree(&automation, &desktop) {
-                return Some(text);
-            }
+        if let Ok(desktop) = automation.GetRootElement()
+            && let Some(text) = find_selected_text_in_tree(&automation, &desktop)
+        {
+            return Some(text);
         }
 
         None
@@ -89,34 +89,32 @@ fn try_get_text_from_element(element: &IUIAutomationElement) -> Option<String> {
     unsafe {
         if let Ok(text_pat) =
             element.GetCurrentPatternAs::<IUIAutomationTextPattern>(UIA_TextPatternId)
+            && let Ok(sel_array) = text_pat.GetSelection()
         {
-            if let Ok(sel_array) = text_pat.GetSelection() {
-                let len = sel_array.Length().unwrap_or(0);
-                let mut collected = String::new();
-                for i in 0..len {
-                    if let Ok(range) = sel_array.GetElement(i) {
-                        if let Ok(s) = range.GetText(i32::MAX) {
-                            let chunk = s.to_string();
-                            if !chunk.is_empty() {
-                                collected.push_str(&chunk);
-                            }
-                        }
+            let len = sel_array.Length().unwrap_or(0);
+            let mut collected = String::new();
+            for i in 0..len {
+                if let Ok(range) = sel_array.GetElement(i)
+                    && let Ok(s) = range.GetText(i32::MAX)
+                {
+                    let chunk = s.to_string();
+                    if !chunk.is_empty() {
+                        collected.push_str(&chunk);
                     }
                 }
-                if !collected.is_empty() {
-                    return Some(collected);
-                }
+            }
+            if !collected.is_empty() {
+                return Some(collected);
             }
         }
 
         if let Ok(val_pat) =
             element.GetCurrentPatternAs::<IUIAutomationValuePattern>(UIA_ValuePatternId)
+            && let Ok(s) = val_pat.CurrentValue()
         {
-            if let Ok(s) = val_pat.CurrentValue() {
-                let v = s.to_string();
-                if !v.is_empty() {
-                    return Some(v);
-                }
+            let v = s.to_string();
+            if !v.is_empty() {
+                return Some(v);
             }
         }
 
@@ -139,10 +137,10 @@ fn find_selected_text_in_tree(
         ) {
             let count = children.Length().unwrap_or(0);
             for i in 0..count {
-                if let Ok(child) = children.GetElement(i) {
-                    if let Some(text) = find_selected_text_in_tree(automation, &child) {
-                        return Some(text);
-                    }
+                if let Ok(child) = children.GetElement(i)
+                    && let Some(text) = find_selected_text_in_tree(automation, &child)
+                {
+                    return Some(text);
                 }
             }
         }

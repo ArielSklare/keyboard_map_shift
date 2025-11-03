@@ -2,11 +2,11 @@ use std::ffi::OsStr;
 use std::os::windows::ffi::OsStrExt;
 use std::path::PathBuf;
 
+use windows::Win32::System::Com::IPersistFile;
 use windows::Win32::System::Com::{
     CLSCTX_INPROC_SERVER, COINIT_APARTMENTTHREADED, CoCreateInstance, CoInitializeEx,
     CoUninitialize,
 };
-use windows::Win32::System::Com::IPersistFile;
 use windows::Win32::UI::Shell::{IShellLinkW, ShellLink};
 use windows::core::{Interface, PCWSTR};
 

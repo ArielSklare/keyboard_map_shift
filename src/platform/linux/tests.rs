@@ -18,7 +18,7 @@ fn apply_hotkey_unknown_de_panics_on_unwrap() {
     let _g1 = EnvVarGuard::set_str("XDG_CURRENT_DESKTOP", "unknown-desktop");
     let _g2 = EnvVarGuard::set_str("DESKTOP_SESSION", "unknown-session");
     let binder = LinuxBinder::new();
-    let _ = binder.apply_hotkey("Ctrl+Alt+K").unwrap();
+    binder.apply_hotkey("Ctrl+Alt+K").unwrap();
 }
 
 #[test]

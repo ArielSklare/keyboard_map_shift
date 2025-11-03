@@ -383,7 +383,7 @@ fn test_invert_layout_map_ignores_multi_char() {
     };
 
     let inverse = invert_layout_map(&layout);
-    assert!(inverse.get(&'A').is_none());
+    assert!(!inverse.contains_key(&'A'));
     assert_eq!(inverse.get(&'C'), Some(&vec![0x42]));
 }
 

@@ -114,11 +114,11 @@ pub fn get_layout(index: u32) -> Option<KeyboardLayout> {
     let mut dir = KeyboardDirection::LTR;
     for keycode in 8u16..=255u16 {
         let s = state.key_get_utf8(keycode.into());
-        if let Some(first) = s.chars().next() {
-            if is_rtl_char(first) {
-                dir = KeyboardDirection::RTL;
-                break;
-            }
+        if let Some(first) = s.chars().next()
+            && is_rtl_char(first)
+        {
+            dir = KeyboardDirection::RTL;
+            break;
         }
     }
     Some(KeyboardLayout {
@@ -178,7 +178,7 @@ pub fn vk_to_char_map_default() -> LayoutMap {
 
 pub fn all_layout_vk_maps() -> Vec<LayoutMap> {
     let total = list_layouts().len() as u32;
-    (0..total).map(|i| vk_to_char_map_for_layout(i)).collect()
+    (0..total).map(vk_to_char_map_for_layout).collect()
 }
 
 #[cfg(all(test, target_os = "linux"))]

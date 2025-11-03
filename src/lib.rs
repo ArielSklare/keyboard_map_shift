@@ -30,8 +30,7 @@ pub fn shift_highlighted_text_to_next_layout() -> Result<(), String> {
         .iter()
         .cycle()
         .skip_while(|layout| layout.layout.lang_name != current_layout_map.layout.lang_name)
-        .skip(1)
-        .next()
+        .nth(1)
         .map(|next_layout| shift_text_language(&highlighted_text, current_layout_map, next_layout))
         .ok_or_else(|| "No next layout found".to_string())?;
 

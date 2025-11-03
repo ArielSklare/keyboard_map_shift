@@ -15,10 +15,14 @@ fn temp_appdata() -> std::path::PathBuf {
     p
 }
 
-struct AppDataGuard(EnvVarGuard);
+struct AppDataGuard {
+    _guard: EnvVarGuard,
+}
 impl AppDataGuard {
     fn set(path: &std::path::Path) -> Self {
-        AppDataGuard(EnvVarGuard::set_path(WINDOWS_PATHS.env_appdata, path))
+        AppDataGuard {
+            _guard: EnvVarGuard::set_path(WINDOWS_PATHS.env_appdata, path),
+        }
     }
 }
 
