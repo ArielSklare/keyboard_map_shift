@@ -1,0 +1,95 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            archive_ext: tar.gz
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            archive_ext: zip
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Linux dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libxkbcommon-dev
+
+      - name: Build (release)
+        run: cargo build --release
+
+      - name: Package (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME}"
+          OUT="keyboard_map_shift-${VERSION}-${{ matrix.target }}"
+          mkdir -p dist/"$OUT"
+          cp target/release/keyboard_map_shift dist/"$OUT"/
+          [ -f LICENSE ] && cp LICENSE dist/"$OUT"/
+          tar -C dist -czf "dist/${OUT}.tar.gz" "$OUT"
+          sha256sum "dist/${OUT}.tar.gz" > "dist/${OUT}.tar.gz.sha256"
+
+      - name: Package (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $version = $env:GITHUB_REF_NAME
+          $out = "keyboard_map_shift-$version-${{ matrix.target }}"
+          New-Item -ItemType Directory -Path dist\$out | Out-Null
+          Copy-Item target\release\keyboard_map_shift.exe dist\$out\
+          if (Test-Path LICENSE) { Copy-Item LICENSE dist\$out\ }
+          Compress-Archive -Path dist\$out\* -DestinationPath dist\$out.zip
+          CertUtil -hashfile dist\$out.zip SHA256 | Select-String "^[0-9A-F]{64}$" | %% { $_.Line } | Out-File -Encoding ascii dist\$out.zip.sha256
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target }}
+          path: |
+            dist/*.tar.gz
+            dist/*.tar.gz.sha256
+            dist/*.zip
+            dist/*.zip.sha256
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Create GitHub Release and upload assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/**/*.tar.gz
+            dist/**/*.tar.gz.sha256
+            dist/**/*.zip
+            dist/**/*.zip.sha256
+          generate_release_notes: true
